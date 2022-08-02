@@ -39,9 +39,9 @@ def _check_library_version():
         print('error: Revision version not found!')
         sys.exit(1)
 
-    major = major.group(0).strip()
-    minor = minor.group(0).strip()
-    revision = revision.group(0).strip()
+    major = major[0].strip()
+    minor = minor[0].strip()
+    revision = revision[0].strip()
 
     if int(major) != LIBRARY_VERSION[0] or int(minor) != LIBRARY_VERSION[1] or int(revision) != LIBRARY_VERSION[2]:
         print('error: The version of the library is not compatible with the pybddisasm!')
@@ -55,7 +55,7 @@ with open('README.md', 'r', 'utf-8') as f:
     readme = f.read()
 
 class BinaryDistribution(Distribution):
-    def has_ext_modules(arg):
+    def has_ext_modules(self):
         return True
 
     def is_pure(self):

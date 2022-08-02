@@ -139,7 +139,7 @@ valid_opsize = [
     'b',            # Byte, regardless of operand-size attribute.
     'c',            # Byte or word, depending on operand-size attribute.
     'd',            # Doubleword, regardless of operand-size attribute.
-    
+
     'dq',           # Double-quadword, regardless of operand-size attribute (XMM register or 
                     # 128 bit memory location). A smaller quantity from the 128 bit register may be accessed.
 
@@ -160,10 +160,10 @@ valid_opsize = [
     'vm64z',        # VSIB addressing, using QWORD indices in ZMM register, select 32/64 bit.
     'vm64h',        # VSIB addressing, using QWORD indices in half register, select 32/64 bit.
     'vm64n',        # VSIB addressing, using QWORD indices in normal register, select 32/64 bit.
-    
+
     # MIB addressing
     'mib',          # MIB addressing, the base & the index are used to form a pointer.
-    
+
     # Stack sizes and partial access
     'v2',           # Two stack words.
     'v3',           # Three stack words.
@@ -520,16 +520,10 @@ class ParseLineException(Exception):
 
 
 def reverse_dict(d):
-    r = {}
-    for k in d:
-        r[d[k]] = k
-    return r
+    return {d[k]: k for k in d}
 
 def my_str(x):
-    if x is None:
-        return x
-    else:
-        return str(x)
+    return x if x is None else str(x)
 
 
 #
@@ -544,7 +538,7 @@ class CpuidFeatureFlag():
         self.Bit = finfo["bit"]
 
     def __str__(self):
-        return "%s: %s, %s, %s, %s" % (self.Name, self.Leaf, self.SubLeaf, self.Reg, self.Bit)
+        return f"{self.Name}: {self.Leaf}, {self.SubLeaf}, {self.Reg}, {self.Bit}"
 
 
 #
@@ -570,17 +564,15 @@ class Operand():
         elif op.endswith('+1'):
             self.Block = 2
             op = op.replace('+1', '')
-        else:
-            m = re.match(r'XMM(\d)-(\d)', op)
-            if m:
-                start = m.group(1)
-                end = m.group(2)
-                self.Block = int(end) - int(start) + 1
-                op = 'XMM' + start
+        elif m := re.match(r'XMM(\d)-(\d)', op):
+            start = m[1]
+            end = m[2]
+            self.Block = int(end) - int(start) + 1
+            op = f'XMM{start}'
 
         # Handle the decorators.
         for dec in valid_decorators:
-            if -1 != op.find(dec):
+            if op.find(dec) != -1:
                 # Found decorator.
                 self.Decorators.append(dec)
                 # Remove it from the opstring.
@@ -589,7 +581,6 @@ class Operand():
         # Handle hard-coded operators - those that are implicit/are not encoded anywhere.
         if op in valid_impops:
             self.Type, self.Size = valid_impops[op][0], valid_impops[op][1]
-        # Now handle explicit operators.
         else:
             # Attempt a match inside the explicit operands map.
             for opt in valid_optype:
@@ -600,12 +591,12 @@ class Operand():
 
             # Now the operand size. After parsing the decorator and the operand type, we should be left with
             # the operand size only.
-            if self.Type in ['rK', 'mK', 'vK', 'aK'] and not op in valid_opsize:
+            if self.Type in ['rK', 'mK', 'vK', 'aK'] and op not in valid_opsize:
                 self.Size = 'q'
             elif op in valid_opsize:
                 self.Size = op
             else:
-                raise InvalidEncodingException('Invalid operand size specified: ' + orig)
+                raise InvalidEncodingException(f'Invalid operand size specified: {orig}')
 
         if self.Type in operand_encoding:
             self.Encoding = operand_encoding[self.Type]
@@ -618,8 +609,7 @@ class Operand():
         self.Access = access
 
     def __str__(self):
-        if True:
-            return self.Raw
+        return self.Raw
 
 
 #

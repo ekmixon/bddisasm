@@ -49,7 +49,7 @@ def print_instruction(instruction, rip, highlight=False, ext_info=False):
     print_internal('%016x ' % rip)
 
     # prefixes
-    for ibyte in range(0, instruction.PrefLength):
+    for ibyte in range(instruction.PrefLength):
         print_internal('%02x' % instruction.InstructionBytes[ibyte])
 
     # opcodes
@@ -80,8 +80,8 @@ def print_instruction(instruction, rip, highlight=False, ext_info=False):
     for ibyte in range(k, instruction.Length):
         print_internal('%02x' % instruction.InstructionBytes[ibyte])
 
-    print_internal('%s' % _SPACES[16 - instruction.Length])
-    print_internal('%s' % instruction.Text)
+    print_internal(f'{_SPACES[16 - instruction.Length]}')
+    print_internal(f'{instruction.Text}')
 
     if ext_info:
         print_internal('\n')
@@ -104,16 +104,15 @@ def disassemble_file(filepath, offset=0, size=0, rip=0, arch=64,
 
         while offset < file_size and total < size:
             to_read = file_size - offset
-            if to_read > 15:
-                to_read = 15
-
+            to_read = min(to_read, 15)
             f.seek(offset, 0)
             buff = f.read(to_read)
 
             current_rip = rip + total
 
-            instr = nd_decode_ex2(buff, arch, arch, arch, vendor, current_rip)
-            if instr:
+            if instr := nd_decode_ex2(
+                buff, arch, arch, arch, vendor, current_rip
+            ):
                 print_instruction(instr, current_rip, highlight, ext_info)
                 offset += instr['Length']
                 total += instr['Length']
@@ -144,8 +143,9 @@ def disassemble_hexstring(hexstring, offset=0, size=0, rip=0, arch=64,
     while total < size:
         current_rip = rip + total
 
-        instr = nd_decode_ex2(buff[total:total+16], arch, arch, arch, vendor, current_rip)
-        if instr:
+        if instr := nd_decode_ex2(
+            buff[total : total + 16], arch, arch, arch, vendor, current_rip
+        ):
             print_instruction(instr, current_rip, highlight, ext_info)
             offset += instr['Length']
             total += instr['Length']

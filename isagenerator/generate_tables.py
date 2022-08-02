@@ -474,24 +474,24 @@ disasmlib.Operand.cdef = cdef_operand
 #
 def cdef_instruction(self):
     c = ''
-        
+
     c += '    // Pos:%d Instruction:"%s" Encoding:"%s"/"%s"\n' % \
             (self.Icount, self.__str__(), self.RawEnc, ''.join([x.Encoding for x in self.ExpOps]).replace('S', ''))
-             
+
     c += '    {\n        '
 
     # Add the instruction class
-    c += 'ND_INS_' + self.Class + ', '
-        
+    c += f'ND_INS_{self.Class}, '
+
     # Add the instruction type
-    c += 'ND_CAT_' + self.Category + ', '
-        
+    c += f'ND_CAT_{self.Category}, '
+
     # Add the instruction set
-    c += 'ND_SET_' + self.Set + ', '
+    c += f'ND_SET_{self.Set}, '
 
     # Add the mneomonic index.
     c += '%d, ' % (mnemonics.index(self.Mnemonic))
-        
+
     c += '\n        '
 
     # Add the prefixes map.
@@ -499,21 +499,13 @@ def cdef_instruction(self):
 
     c += '\n        '
 
-    # Add the valid modes map.
-    all = True
-    for m in modes:
-        if m not in self.Modes:
-            all = False
-    if all:
-        c += 'ND_MOD_ANY, '
-    else:
-        c += '|'.join([modes[m] for m in self.Modes]) + ', '
-
+    all = all(m in self.Modes for m in modes)
+    c += 'ND_MOD_ANY, ' if all else '|'.join([modes[m] for m in self.Modes]) + ', '
     c += '\n        '
 
     # Add the decorators map.
     c += '|'.join([decorators_map[x] for x in self.DecoFlags] or '0') + ', '
-        
+
     # Add the tuple type and the explicit operands count.
     c += 'ND_OPS_CNT(%d, %d), ' % (len(self.ExpOps), len(self.ImpOps))
 
@@ -528,23 +520,14 @@ def cdef_instruction(self):
         else:
             exclass = 'ND_EXC_EVEX'
 
-    if self.Evex:
-        # EVEX encoded instructions, store the tuple type.
-        c += '%s, ' % (tuples[self.Tuple])
-    else:
-        c += '0, '
-
+    c += f'{tuples[self.Tuple]}, ' if self.Evex else '0, '
     # Store exception type & class, if any.
-    if exclass:
-        c += '%s, %s, ' % (extype[self.ExClass], exclass)
-    else:
-        c += '0, 0, '
-
+    c += f'{extype[self.ExClass]}, {exclass}, ' if exclass else '0, 0, '
     # Add the FPU flags access, if the instruction is fpu.
     if self.Set == 'X87':
         value = 0
         acc = { '0': 0, '1': 1, 'm': 2, 'u': 3 }
-        for i in range(0, 4):
+        for i in range(4):
             value |= acc[self.FpuFlags[i]] << (i * 2)
         c += '0x%02x, ' % value
     else:
@@ -559,25 +542,25 @@ def cdef_instruction(self):
                                                               and not x.startswith('OP5') and not x.startswith('OP6')\
                                                                 ]) or 0
 
-    c += '%s, ' % fs
+    c += f'{fs}, '
 
     # Store the CPUID flag, if any
     flg = "0"
     for feat in features:
         if feat.Name == self.Id:
-            flg = "ND_CFF_%s" % feat.Name
-    c += "%s, " % flg
+            flg = f"ND_CFF_{feat.Name}"
+    c += f"{flg}, "
 
     # Store the accessed flags, if any.
     for m in ['t', 'm', '1', '0']:
         flg = "0"
         dst = self.RevFlagsAccess[m]
-        if m == '1' or m == '0':
+        if m in ['1', '0']:
             dst = dst + self.RevFlagsAccess['u']
         for f in dst:
-            flg += '|NDR_RFLAG_%s' % f.upper()
+            flg += f'|NDR_RFLAG_{f.upper()}'
         c += "\n        %s," % flg
-        
+
     # Add the instruction operands
     allOps = self.ExpOps + self.ImpOps
     c += "\n        {"
